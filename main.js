@@ -2,60 +2,79 @@
 // "https://customsearch.googleapis.com/customsearch/v1?cx=b948a108d74cf99d1&fileType=%22png%22&imgSize=MEDIUM&num=1&q=Cat&searchType=image&start=1&key=AIzaSyCAzlneuJaQ1NDv8b2mFlFom93BYYJsbfY";
 
 const https = require("https");
+const fs = require("fs");
+const request = require("request");
+const os = require("os");
 
 var KEY = "AIzaSyCAzlneuJaQ1NDv8b2mFlFom93BYYJsbfY";
 var CX = "b948a108d74cf99d1";
 var imageURL;
 
-let baseURL = "https://customsearch.googleapis.com/customsearch/v1?";
-let Opts = {
-    cx: `cx=${CX}`,
-    fileType: "fileType=%22png%22",
-    imgSize: "imgSize=MEDIUM",
-    num: "num=1",
-    q: "q=Cat",
-    searchType: "searchType=image",
-    start: "start=1",
-    key: `key=${KEY}`,
+// determines the users operating system, returns: win, mac, linux
+function getOS() {
+    let osName = process.platform;
+
+    switch (osName) {
+        case "darwin":
+            return "mac";
+        case "win32":
+            return "win";
+        case "linux":
+            return "linux";
+        default:
+            return "unsupported";
+    }
+}
+
+// param: content for the image, and search result number
+// calls the "download" function
+function getImageURL(search, resultNum) {
+    // base URL before options
+    let baseURL = "https://customsearch.googleapis.com/customsearch/v1?";
+    // options for URL
+    let Opts = {
+        cx: `cx=${CX}`,
+        fileType: "fileType=%22png%22",
+        imgSize: "imgSize=MEDIUM",
+        num: "num=1",
+        q: `q=${search}`,
+        searchType: "searchType=image",
+        start: `start=${resultNum}`,
+        key: `key=${KEY}`,
+    };
+    // combines elements into one URL
+    let completedURL = `${baseURL}${Opts.cx}&${Opts.fileType}&${Opts.imgSize}&${Opts.num}&${Opts.q}&${Opts.searchType}&${Opts.start}&${Opts.key}`;
+
+    https.get(completedURL, (resp) => {
+        let data = "";
+
+        resp.on("data", (block) => {
+            data += block;
+        });
+
+        resp.on("end", () => {
+            let response = JSON.parse(data);
+            imageURL = response.items[0].link;
+
+            download(imageURL, "cat.png", () => {
+                console.log("Downloaded Image");
+            });
+        });
+    });
+}
+
+// downloads image based on url, names it filename, and calls callback
+var download = function (url, filename, callback) {
+    request.head(url, function (err, res, body) {
+        console.log("content-type:", res.headers["content-type"]);
+        console.log("content-length:", res.headers["content-length"]);
+
+        request(url).pipe(fs.createWriteStream(filename)).on("close", callback);
+    });
 };
-let completedURL = `${baseURL}${Opts.cx}&${Opts.fileType}&${Opts.imgSize}&${Opts.num}&${Opts.q}&${Opts.searchType}&${Opts.start}&${Opts.key}`;
 
-https.get(completedURL, (resp) => {
-    let data = "";
+// param: content for the image, and search result number
 
-    resp.on("data", (block) => {
-        data += block;
-    });
-
-    resp.on("end", () => {
-        let response = JSON.parse(data);
-
-        console.log(response.items[0].link);
-    });
-});
-
-// const https = require("https");
-// const word = "fish";
-// const URL = "https://api.datamuse.com/words?rel_syn=" + word;
-// var Response;
-
-// https.get(URL, (resp) => {
-//     let data = "";
-
-//     resp.on("data", (chunk) => {
-//         data += chunk;
-//     });
-
-//     resp.on("end", () => {
-//         Response = JSON.parse(data);
-//         main();
-//     });
-// });
-
-// function main() {
-//     console.log("Apparently synonyms for", word, "are:");
-//     for (let syn of Response) {
-//         process.stdout.write(`${syn.word}, `);
-//     }
-//     console.log();
-// }
+let searchingFor = "cat";
+let searchResNum = Math.trunc(Math.random() * 100 + 1);
+getImageURL(searchingFor, searchResNum);
