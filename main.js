@@ -5,26 +5,11 @@ const https = require("https");
 const fs = require("fs");
 const request = require("request");
 const os = require("os");
+const exec = require("child_process").exec;
 
 var KEY = "AIzaSyCAzlneuJaQ1NDv8b2mFlFom93BYYJsbfY";
 var CX = "b948a108d74cf99d1";
 var imageURL;
-
-// determines the users operating system, returns: win, mac, linux
-function getOS() {
-    let osName = process.platform;
-
-    switch (osName) {
-        case "darwin":
-            return "mac";
-        case "win32":
-            return "win";
-        case "linux":
-            return "linux";
-        default:
-            return "unsupported";
-    }
-}
 
 // param: content for the image, and search result number
 // calls the "download" function
@@ -34,7 +19,7 @@ function getImageURL(search, resultNum) {
     // options for URL
     let Opts = {
         cx: `cx=${CX}`,
-        fileType: "fileType=%22png%22",
+        fileType: "fileType=%22jpg%22",
         imgSize: "imgSize=MEDIUM",
         num: "num=1",
         q: `q=${search}`,
@@ -56,25 +41,51 @@ function getImageURL(search, resultNum) {
             let response = JSON.parse(data);
             imageURL = response.items[0].link;
 
-            download(imageURL, "cat.png", () => {
+            download(imageURL, "cat.jpg", () => {
                 console.log("Downloaded Image");
+                openCatFile();
             });
         });
     });
 }
 
 // downloads image based on url, names it filename, and calls callback
-var download = function (url, filename, callback) {
+function download(url, filename, callback) {
     request.head(url, function (err, res, body) {
         console.log("content-type:", res.headers["content-type"]);
         console.log("content-length:", res.headers["content-length"]);
 
         request(url).pipe(fs.createWriteStream(filename)).on("close", callback);
     });
-};
+}
 
-// param: content for the image, and search result number
+// determines the users operating system, returns: win, mac, linux
+function getOS_open_CMD() {
+    let osName = process.platform;
+
+    switch (osName) {
+        case "darwin":
+            return "open cat.jpg";
+        case "win32":
+            return "cat.jpg";
+        case "linux":
+            return "eog cat.jpg";
+        default:
+            return "unsupported";
+    }
+}
+
+function openCatFile() {
+    var cmd = getOS_open_CMD();
+    const child = exec(cmd, (error, stdout, stderr) => {
+        console.log(`stdout: ${stdout}`);
+        console.log(`stderr: ${stderr}`);
+        if (error !== null) {
+            console.log(`exec error: ${error}`);
+        }
+    });
+}
 
 let searchingFor = "cat";
-let searchResNum = Math.trunc(Math.random() * 100 + 1);
+let searchResNum = Math.trunc(Math.random() * 198 + 1);
 getImageURL(searchingFor, searchResNum);
