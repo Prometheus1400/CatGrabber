@@ -4,11 +4,10 @@
 const https = require("https");
 const fs = require("fs");
 const request = require("request");
-const os = require("os");
 const exec = require("child_process").exec;
 
-var KEY = "AIzaSyCAzlneuJaQ1NDv8b2mFlFom93BYYJsbfY";
-var CX = "b948a108d74cf99d1";
+var KEY = ""; // ADD YOUR KEY HERE
+var CX = ""; // ADD YOUR CX HERE
 var imageURL;
 
 // param: content for the image, and search result number
