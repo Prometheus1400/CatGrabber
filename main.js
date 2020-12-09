@@ -38,12 +38,24 @@ function getImageURL(search, resultNum) {
 
         resp.on("end", () => {
             let response = JSON.parse(data);
-            imageURL = response.items[0].link;
-
-            download(imageURL, "cat.jpg", () => {
-                console.log("Downloaded Image");
-                openCatFile();
-            });
+            if (response == undefined) {
+                console.log(response);
+                console.error("Failed to fetch image");
+                console.log("response");
+            } else {
+                imageURL = response.items[0].link;
+                if (imageURL.search(".jpg") != -1 || imageURL.search(".jpeg") != -1) {
+                    download(imageURL, `${outputName}`, () => {
+                        console.log("Downloaded Image");
+                        openCatFile();
+                    });
+                } else {
+                    console.error("Downloaded wrong file format, trying again");
+                    console.log(imageURL);
+                    searchResNum = Math.trunc(Math.random() * 198 + 1);
+                    getImageURL(searchingFor, searchResNum);
+                }
+            }
         });
     });
 }
@@ -51,10 +63,16 @@ function getImageURL(search, resultNum) {
 // downloads image based on url, names it filename, and calls callback
 function download(url, filename, callback) {
     request.head(url, function (err, res, body) {
-        console.log("content-type:", res.headers["content-type"]);
-        console.log("content-length:", res.headers["content-length"]);
+        if (res == undefined) {
+            console.log("Failed to download image, trying again");
+            searchResNum = Math.trunc(Math.random() * 198 + 1);
+            getImageURL(searchingFor, searchResNum);
+        } else {
+            console.log("content-type:", res.headers["content-type"]);
+            console.log("content-length:", res.headers["content-length"]);
 
-        request(url).pipe(fs.createWriteStream(filename)).on("close", callback);
+            request(url).pipe(fs.createWriteStream(filename)).on("close", callback);
+        }
     });
 }
 
@@ -64,11 +82,11 @@ function getOS_open_CMD() {
 
     switch (osName) {
         case "darwin":
-            return "open cat.jpg";
+            return `open ${outputName}`;
         case "win32":
-            return "cat.jpg";
+            return `${outputName}`;
         case "linux":
-            return "eog cat.jpg";
+            return `eog ${outputName}`;
         default:
             return "unsupported";
     }
@@ -76,15 +94,19 @@ function getOS_open_CMD() {
 
 function openCatFile() {
     var cmd = getOS_open_CMD();
-    const child = exec(cmd, (error, stdout, stderr) => {
-        console.log(`stdout: ${stdout}`);
-        console.log(`stderr: ${stderr}`);
-        if (error !== null) {
-            console.log(`exec error: ${error}`);
-        }
-    });
+    if (cmd == "unsupported") {
+        console.error("Unsupported operating system");
+    } else {
+        console.log("Opening image..");
+        const child = exec(cmd, (error, stdout, stderr) => {
+            if (error != null) {
+                console.log(`exec error: ${error}`);
+            }
+        });
+    }
 }
 
 let searchingFor = "cat";
+let outputName = `${searchingFor}.jpg`;
 let searchResNum = Math.trunc(Math.random() * 198 + 1);
 getImageURL(searchingFor, searchResNum);
